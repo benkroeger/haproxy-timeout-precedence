@@ -1,0 +1,37 @@
+version: "3.7"
+services:
+  haproxy:
+    image: haproxy:1.8-alpine
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - "8080:80"
+    networks:
+      - default
+    restart: on-failure
+
+  echo:
+    image: tenzer/http-echo-test
+    networks:
+      - default
+    restart: on-failure
+
+  node:
+    image: node:alpine
+    user: node
+    working_dir: /home/node/app
+    volumes:
+      - ./node:/home/node/app:ro
+    entrypoint: ./await-http.sh 10 http://haproxy --
+    command: node timeouts.js
+    environment: 
+      - NUMBER_OF_REQUESTS=1
+      - REQUEST_INTERVAL_MS=20000
+      - TCP_KEEPALIVE_INTERVAL=5000
+    networks:
+      - default
+    restart: on-failure
+
+networks:
+  default:
+    driver: bridge
